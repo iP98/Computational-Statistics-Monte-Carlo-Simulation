@@ -1,3 +1,5 @@
+Question 1.
+
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -43,3 +45,217 @@ avg_train_mse = np.mean(training_errors)
 avg_val_mse = np.mean(validation_errors)
 
 avg_train_mse, avg_val_mse
+
+
+import numpy as np
+import pandas as pd
+from numpy.linalg import inv, pinv, LinAlgError
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+def create_dataset(n_observations, n_predictors):
+    X = np.random.randn(n_observations, n_predictors)
+    true_beta = np.random.randn(n_predictors, 1)
+    noise = np.random.randn(n_observations, 1)
+    Y = X.dot(true_beta) + noise
+    return X, Y
+
+def estimate_OLS(X, Y):
+    try:
+        beta_hat = pinv(X.T.dot(X)).dot(X.T).dot(Y)
+        return beta_hat
+    except LinAlgError:
+        print("Ο πίνακας X'X είναι μη αντιστρέψιμος.")
+        return None
+
+def calculate_mse(Y_true, Y_pred):
+    mse = mean_squared_error(Y_true, Y_pred)
+    return mse
+
+n_observations = 50 
+n_predictors = 100   
+
+X, Y = create_dataset(n_observations, n_predictors)
+
+beta_hat = estimate_OLS(X, Y)
+
+if beta_hat is not None:
+    Y_pred = X.dot(beta_hat)
+
+    mse = calculate_mse(Y, Y_pred)
+    print(f"MSE: {mse}")
+else:
+    print("Error.")
+
+
+Question 3.
+from sklearn.datasets import make_regression
+from sklearn.decomposition import PCA
+from sklearn.linear_model import Lasso, Ridge
+from sklearn.feature_selection import SelectFromModel
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Generate a synthetic dataset
+X, y = make_regression(n_samples=100, n_features=1000, n_informative=10, noise=0.1, random_state=42)
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+### Dimensionality Reduction with PCA
+pca = PCA(n_components=50)  # Reduce to 50 components
+X_train_pca = pca.fit_transform(X_train)
+X_test_pca = pca.transform(X_test)
+
+### Regularization with Lasso and Ridge
+lasso = Lasso(alpha=0.1)
+ridge = Ridge(alpha=1.0)
+
+lasso.fit(X_train, y_train)
+ridge.fit(X_train, y_train)
+
+### Feature Selection with Lasso as the model
+selector = SelectFromModel(estimator=Lasso(alpha=0.1)).fit(X_train, y_train)
+X_train_selected = selector.transform(X_train)
+X_test_selected = selector.transform(X_test)
+
+# Evaluating the models
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+# Evaluate PCA with Ridge Regression
+ridge_pca = Ridge(alpha=1.0)
+ridge_pca.fit(X_train_pca, y_train)
+mse_pca_ridge = evaluate_model(ridge_pca, X_test_pca, y_test)
+
+# Evaluate Lasso and Ridge
+mse_lasso = evaluate_model(lasso, X_test, y_test)
+mse_ridge = evaluate_model(ridge, X_test, y_test)
+
+# Evaluate feature selection with Ridge Regression
+ridge_selected = Ridge(alpha=1.0)
+ridge_selected.fit(X_train_selected, y_train)
+mse_selected_ridge = evaluate_model(ridge_selected, X_test_selected, y_test)
+
+(mse_pca_ridge, mse_lasso, mse_ridge, mse_selected_ridge)
+
+Question 4.
+a)
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+
+# Load the dataset
+data = pd.read_csv("Swarm_Behaviour.csv")
+data = data.head(1000)
+
+# Check the number of features and observations
+n_observations, n_features = data.shape
+print("Number of observations:", n_observations)
+print("Number of features:", n_features)
+
+# Parameters for the Monte Carlo simulation
+n_simulations = 100  # Number of simulations
+
+# Initialize lists to store the results of each simulation
+training_errors = []
+validation_errors = []
+
+# Monte Carlo Simulation
+for sim in range(n_simulations):
+    # Generate synthetic data
+    X = data.drop(columns=["Swarm_Behaviour"]).values  # Features
+    Y = data["Swarm_Behaviour"].values.reshape(-1, 1)  # Outcome variable
+
+    # Split the dataset into training and validation sets
+    X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, random_state=sim)
+
+    # Fit a linear model to the training data
+    model = LinearRegression().fit(X_train, Y_train)
+
+    # Predict on training and validation set
+    Y_train_pred = model.predict(X_train)
+    Y_val_pred = model.predict(X_val)
+
+    # Calculate and record the mean squared error on training and validation sets
+    train_mse = mean_squared_error(Y_train, Y_train_pred)
+    val_mse = mean_squared_error(Y_val, Y_val_pred)
+
+    training_errors.append(train_mse)
+    validation_errors.append(val_mse)
+
+# Calculate the average training and validation mean squared error across all simulations
+avg_train_mse = np.mean(training_errors)
+avg_val_mse = np.mean(validation_errors)
+
+avg_train_mse, avg_val_mse
+
+
+b)
+import numpy as np
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.linear_model import Lasso, Ridge
+from sklearn.feature_selection import SelectFromModel
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+# Load the dataset
+data = pd.read_csv("Swarm_Behaviour.csv")
+
+# Limit the dataset to 1000 observations
+data = data.head(1000)
+
+# Separate features and target variable
+X = data.drop(columns=["Swarm_Behaviour"]).values
+y = data["Swarm_Behaviour"].values
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+### Dimensionality Reduction with PCA
+pca = PCA(n_components=50)  # Reduce to 50 components
+X_train_pca = pca.fit_transform(X_train)
+X_test_pca = pca.transform(X_test)
+
+### Regularization with Lasso and Ridge
+lasso = Lasso(alpha=0.1)
+ridge = Ridge(alpha=1.0)
+
+lasso.fit(X_train, y_train)
+ridge.fit(X_train, y_train)
+
+### Feature Selection with Lasso as the model
+selector = SelectFromModel(estimator=Lasso(alpha=0.1)).fit(X_train, y_train)
+X_train_selected = selector.transform(X_train)
+X_test_selected = selector.transform(X_test)
+
+# Evaluating the models
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+# Evaluate PCA with Ridge Regression
+ridge_pca = Ridge(alpha=1.0)
+ridge_pca.fit(X_train_pca, y_train)
+mse_pca_ridge = evaluate_model(ridge_pca, X_test_pca, y_test)
+
+# Evaluate Lasso and Ridge
+mse_lasso = evaluate_model(lasso, X_test, y_test)
+mse_ridge = evaluate_model(ridge, X_test, y_test)
+
+# Evaluate feature selection with Ridge Regression
+ridge_selected = Ridge(alpha=1.0)
+ridge_selected.fit(X_train_selected, y_train)
+mse_selected_ridge = evaluate_model(ridge_selected, X_test_selected, y_test)
+
+(mse_pca_ridge, mse_lasso, mse_ridge, mse_selected_ridge)
